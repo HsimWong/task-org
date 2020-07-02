@@ -16,12 +16,14 @@ DNS_RQ_PORT = 23333
 class DNSServer(object):
     def __init__(self):
         self.__members = {} # {'domainName': member}
-        # self.__offlineMembers = {} # {'mac': member}
+        self.__offlineMembers = {} # {'mac': member}
         self.__master = None
         self.__provision()
         self.__masterUpdateRqListener()
+
         # DNS Service running in the background, started
         # with `systemctl start dnsmasq`
+        
 
     def __provision(self):
         if not os.geteuid() == 0:
@@ -75,32 +77,36 @@ class DNSServer(object):
         pass
 
     def __updateMasterDomain(self, params):
+        # mark master node as offline
+        self.__members['master'+(DOMAIN_SUFFIX)].update({
+            'status':'offline',
+            'role':'none',
+            'domainName':'offline'+(\
+                str(len(self.__offlineMembers)) + DOMAIN_SUFFIX)
+        })
         domainName = ""
         # choose a node as master candidate
         for domain in self.__members.keys():
             if self.__members[domain]['status'] == 'online' and \
-                not self.__members[domain]['ip'] == utils.__getIP():
+                not self.__members[domain]['ip'] == utils.getIP():
                 domainName = domain
-        # mark master node as offline
-        self.__members['master'.join(DOMAIN_SUFFIX)].update({
-            'status':'offline',
-            'role':'none',
-            'domainName':'offline'.join(\
-                str(len(self.__offlineMembers)) + DOMAIN_SUFFIX)
-        })
+        
         # Reassigning master domainName to new node
-        self.__members['master'.join(DOMAIN_SUFFIX)] \
+        self.__members['master'+(DOMAIN_SUFFIX)] \
             = self.__members[domainName]
-        os.system("sed 's/master$/master.csu.ac.cn\/%s' %s > %s"\
+        os.system("sed -i 's/master.*$/master.csu.ac.cn\/%s/' %s"\
             %(self.__members[domainName]['ip'], \
-                HOST_CONF_FILE, HOST_CONF_FILE))
+                HOST_CONF_FILE))
         self.__master = self.__members[domainName]
         # restarting dnsmasq service
         os.system('systemctl restart dnsmasq')
+        return True
 
     def __masterUpdateRqListener(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(("127.0.0.1", DNS_RQ_PORT))
+
         s.listen()
         dealers = {
             'register': self.__registerNode,
@@ -114,8 +120,10 @@ class DNSServer(object):
                 continue
             else:
                 msgParsed = json.loads(msgRaw)
+                print(msgParsed)
                 returnMsg = dealers[msgParsed['type']](msgParsed['params'])
                 conn.sendall(str(returnMsg).encode())
+        s.close()
             
 if __name__ == "__main__":
     dnsserver = DNSServer()
