@@ -7,6 +7,13 @@ import threading
 import logging
 from getmac import get_mac_address as gma 
 
+
+'''
+Following static variables will be
+re-arranged to an external file to 
+avoid redundancy of codes.
+'''
+
 DOMAIN_SUFFIX = '.csu.ac.cn'
 HOST_CONF_FILE = '/etc/dnsmasq.d/hosts.conf'
 DNS_RQ_PORT = 23333
@@ -94,7 +101,7 @@ class DNSServer(object):
         # Reassigning master domainName to new node
         self.__members['master'+(DOMAIN_SUFFIX)] \
             = self.__members[domainName]
-        os.system("sed -i 's/master.*$/master.csu.ac.cn\/%s/' %s"\
+        os.system(r"sed -i 's/master.*$/master.csu.ac.cn\/%s/' %s"\
             %(self.__members[domainName]['ip'], \
                 HOST_CONF_FILE))
         self.__master = self.__members[domainName]
@@ -114,7 +121,8 @@ class DNSServer(object):
         }
         while True:
             print("Listening for requests")
-            conn, addr = s.accept()
+            raw_conn = s.accept()
+            conn = raw_conn[0]
             msgRaw = conn.recv(0x400).decode()
             if not msgRaw:
                 continue
