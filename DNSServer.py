@@ -22,7 +22,8 @@ DNS_RQ_PORT = 23333
 
 class DNSServer(object):
     def __init__(self):
-        self.__members = {} # {'domainName': member}
+        # __members = {'domainName': member}
+        self.__members = {'master'+DOMAIN_SUFFIX: None}
         self.__offlineMembers = {} # {'mac': member}
         self.__master = None
         self.__provision()
@@ -34,7 +35,8 @@ class DNSServer(object):
 
     def __provision(self):
         if not os.geteuid() == 0:
-            sys.exit("This script must be executed under super user")
+            sys.exit("This script must be"\
+                + "executed under super user")
         os.system('fuser -k 53/tcp')
         os.system('fuser -k 23333/tcp')
         os.system('fuser -k 23333/udp')
@@ -76,7 +78,10 @@ class DNSServer(object):
             else:
                 raise Exception("Role tag error")
         os.system('systemctl restart dnsmasq')
-        return True
+        return {
+            'result': True,
+            'nodename': member['domainName']
+        }
 
     def __DNSList(self):
         # telling other nodes other options when 
@@ -108,6 +113,15 @@ class DNSServer(object):
         # restarting dnsmasq service
         os.system('systemctl restart dnsmasq')
         return True
+    
+    def __checkMaster(self, param = None):
+        return json.dumps({
+            'exist': True,
+            # 'masterInfo': self.__members['master'+DOMAIN_SUFFIX]
+        } if 'master'+DOMAIN_SUFFIX in self.__members.keys() else {
+            'exist': False
+        })
+        
 
     def __masterUpdateRqListener(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -117,7 +131,8 @@ class DNSServer(object):
         s.listen()
         dealers = {
             'register': self.__registerNode,
-            'updateMaster': self.__updateMasterDomain
+            'updateMaster': self.__updateMasterDomain,
+            'checkMaster': self.__checkMaster
         }
         while True:
             print("Listening for requests")
