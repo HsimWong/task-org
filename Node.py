@@ -1,15 +1,19 @@
 import configparser
 import os
 import json
-
+import threading
 import utils 
 import socket
+import Master
+import Slave
 from getmac import get_mac_address as gma 
+from time import sleep
 
 
 NODE_SERV_PORT = 23336
-DNS_SERVER_IP = gma()
+DNS_SERVER_IP = gma() # needs 2b changes
 DNS_SERVER_PORT = 23333
+DOMAIN_SUFFIX = '.csu.ac.cn'
 
 class Node(object):
     '''
@@ -34,12 +38,28 @@ class Node(object):
         self.__run()
         self.__role = None
         self.__nodename = None 
+        self.__masterserv = Master.Master()
+        self.__slaveserv = Slave.Slave()
         
     def __run(self):
+        self.__slaveserv.enable()
         self.__register()
+        t1 = threading.Thread(target=self.__masterServMonitor)
+        t1.start()
         
-    def __ifImStillMaster(self):
-        pass 
+        
+    def __masterServMonitor(self):
+        masterServCtrl = {
+            True: self.__masterserv.enable,
+            False: self.__masterserv.disable
+        }
+        while True:
+            masterServCtrl[
+                self.__ip == \
+                socket.gethostbyname('master'\
+                + DOMAIN_SUFFIX)
+            ]()    
+            sleep(5)
             
     def __register(self):
         masterInfo = self.__checkMasterInfo()
@@ -48,7 +68,8 @@ class Node(object):
             'params': {
                 'mac': self.__mac,
                 'IPAddress': self.__ip,
-                'role': 'slave' if masterInfo['exist'] else 'master'
+                'role': 'slave' if masterInfo['exist'] 
+                    else 'master'
             }
         }
         regisResult = self.__send(json.dumps(regisInfo))

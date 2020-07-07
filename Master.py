@@ -1,4 +1,4 @@
-
+from threading import Semaphore
 SERVER_PORT = 23335 
 
 class Master(object):
@@ -26,16 +26,28 @@ class Master(object):
         self.__status = False
         self.__online = False
         self.__members = [] 
+        self.__run()
+        self.__mastServSema = Semaphore(0)
 
     def __masterInfoSync(self):
         pass 
     
-            
-    def start(self):
+    
+    def __run(self):
+        pass
+        
+    def enable(self):
         if not self.__status:
-            self.__status = True 
+            self.__status = True
+            self.__mastServSema.release() 
         else:
             raise Exception("Master is running")
     
-    def stop(self):
-        pass
+    def disable(self):
+        if self.__status:
+            self.__status = False
+            self.__mastServSema.acquire() 
+        else:
+            raise Exception("Master already shutdown")
+    
+    
