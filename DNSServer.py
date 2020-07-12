@@ -5,6 +5,7 @@ import sys
 import utils
 import threading 
 import logging
+import utils
 from getmac import get_mac_address as gma 
 
 
@@ -23,11 +24,17 @@ DNS_RQ_PORT = 23333
 class DNSServer(object):
     def __init__(self):
         # __members = {'domainName': member}
-        self.__members = {'master'+DOMAIN_SUFFIX: None}
+        self.__members = {}#'master'+DOMAIN_SUFFIX: None}
         self.__offlineMembers = {} # {'mac': member}
         self.__master = None
         self.__provision()
-        self.__masterUpdateRqListener()
+        dealers = {
+            'register': self.__registerNode,
+            'updateMaster': self.__updateMasterDomain,
+            'checkMaster': self.__checkMaster,
+            'syncMembers': self.__syncMembers
+        }
+        utils.recv(("127.0.0.1", DNS_RQ_PORT), dealers)
 
         # DNS Service running in the background, started
         # with `systemctl start dnsmasq`
@@ -83,6 +90,10 @@ class DNSServer(object):
             'nodename': member['domainName']
         }
 
+    def __syncMembers(self, params):
+        return json.dumps(self.__members)
+        
+
     def __DNSList(self):
         # telling other nodes other options when 
         # this server is down
@@ -116,38 +127,15 @@ class DNSServer(object):
     
     def __checkMaster(self, param = None):
         return json.dumps({
-            'exist': True,
-            # 'masterInfo': self.__members['master'+DOMAIN_SUFFIX]
-        } if 'master'+DOMAIN_SUFFIX in self.__members.keys() else {
-            'exist': False
+            'exist': ('master'+DOMAIN_SUFFIX 
+            in self.__members.keys())
         })
         
 
-    def __masterUpdateRqListener(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(("127.0.0.1", DNS_RQ_PORT))
-
-        s.listen()
-        dealers = {
-            'register': self.__registerNode,
-            'updateMaster': self.__updateMasterDomain,
-            'checkMaster': self.__checkMaster
-        }
-        while True:
-            print("Listening for requests")
-            raw_conn = s.accept()
-            conn = raw_conn[0]
-            msgRaw = conn.recv(0x400).decode()
-            if not msgRaw:
-                continue
-            else:
-                msgParsed = json.loads(msgRaw)
-                print(msgParsed)
-                returnMsg = dealers[msgParsed['type']](msgParsed['params'])
-                conn.sendall(str(returnMsg).encode())
-        s.close()
+ 
             
 if __name__ == "__main__":
     dnsserver = DNSServer()
     
+    
+    # 82693332

@@ -28,7 +28,6 @@ class Node(object):
         if it's me:
             turn on master
         else: turn off the master
-    
     '''
     
     def __init__(self):
@@ -72,30 +71,22 @@ class Node(object):
                     else 'master'
             }
         }
-        regisResult = self.__send(json.dumps(regisInfo))
+        regisResult = utils.send((DNS_SERVER_IP, DNS_SERVER_PORT),
+                                 json.dumps(regisInfo))
         if regisResult['result']:
             self.__nodename = regisResult['nodename']
             self.__role = regisInfo['params']['role']
             return True
         else:
             raise Exception("Error occurs when registering")
-            
-        
+               
     def __checkMasterInfo(self):
-        return json.loads(self.__send(json.dumps({
-            'type':'checkMaster',
-            'params': None 
-        })))
-        
-            
-            
-    def __send(self, msg):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((DNS_SERVER_IP, DNS_SERVER_PORT))
-        s.sendall(msg.encode())
-        msg = s.recv(1024).decode()
-        s.close()
-        return msg
+        return json.loads(utils.send(
+            (DNS_SERVER_IP,DNS_SERVER_PORT),
+            json.dumps({
+                        'type':'checkMaster',
+                        'params': None 
+            })))
         
     def __readResources(self):
         conf = configparser.ConfigParser()

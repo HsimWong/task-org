@@ -1,5 +1,6 @@
 import json
 import socket 
+import utils 
 # def node
 
 
@@ -57,3 +58,17 @@ def updateMaster():
     print(data.decode())
 
     s.close()
+    
+def checkMaster():
+    info = json.dumps({
+        'type': 'checkMaster',
+        'params': None
+    })
+    print(utils.send(('localhost', 23333), info))
+    
+def syncMembers():
+    info = json.dumps({
+        'type': 'syncMembers',
+        'params': None
+    })
+    print(json.loads(utils.send(('localhost', 23333), info)))
