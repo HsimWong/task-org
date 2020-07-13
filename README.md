@@ -27,3 +27,13 @@ given by `1`.
 1. Provides storage for infos of members in the cluster
 2. Handles Node registering
 3. Responds to DNS requests
+
+## Assumptions and Problems
+### Assumptions
+1. Tasks are assigned by synchronized message -> no message redundancy
+2. DNS server pre-set
+3. Ports never occupied by other processes (23333, 23334, 23335)
+### Problems
+1. Switch Tree (caused by STP)
+2. Licence
+3. Assessment (What kind of criteria should be used)
