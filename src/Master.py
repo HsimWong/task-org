@@ -5,7 +5,9 @@ import socket
 import utils
 import json
 import time
- 
+import queue
+
+SLAVE_PORT = 23334
 MASTER_PORT = 23335
 DNS_PORT = 23333
 DNS_HOST = '127.0.0.1'
@@ -32,28 +34,47 @@ class Master(object):
                 else:
                     continue        
     '''
+
     def __init__(self):
         self.__status = False
         self.__online = False
         self.__members = {}
         self.__tasks = []
-        self.__unassignedTasks = []
-        self.__assignedTasks = []
+        self.__unassignedTasks = queue.Queue()
+        self.__assignedTasks = queue.Queue()
         self.__ifNextMaster = False 
         self.__nextMaster = None
         self.__mastServSema = Semaphore(0)
         self.__dealers = {
             'syncrq': self.__syncRequest,
             'syncinfo': self.__syncInfo,
-            'userrq': self.__userRequest
+            'userrq': lambda params: \
+                self.__unassignedTasks.append(params['task'])
         }
         self.__run()    
+
+    def __getSlave(self):
+        pass
     
     def __run(self):
         connection = ('127.0.0.1', MASTER_PORT)
         tRqListen = Thread(utils.recv(connection, self.__dealers))
         tRqListen.join()
-        
+
+    def __assignTasks(self):
+        while True:
+            task = self.__unassignedTasks.get(block=True)
+            host = self.__getSlave(task)
+            if host == None:
+                self.__unassignedTasks.put(task)
+                continue
+            targetConn = (host, SLAVE_PORT)
+            utils.send(targetConn, json.dumps({
+                'type': 'assignment',
+                'params':task
+            }))
+            self.__assignTasks.put(task)
+
     def __fetchMembersFromDNS(self):
         target = (DNS_HOST, DNS_PORT)
         while True:    
@@ -104,18 +125,8 @@ class Master(object):
                     'members': self.__members
                 }
             }))
-    
-    def __userRequest(self, params):
-        pass 
-
-    # def __getBackUp(self):
-    #     for hostname in self.__members.keys():
-    #         if self.__members[hostname]['ip'] == DNS_HOST\
-    #             or self.__members[hostname]['role'] == "master":
-    #             continue
-    #         else:
-    #             return hostname
-    
+            time.sleep(5)
+        
 
     def __selectNextMaster(self):
         for hostname in self.__members.keys():
@@ -144,7 +155,11 @@ class Master(object):
             self.__mastServSema.acquire() 
         else:
             raise Exception("Master already shutdown")
-        
+    
+    # def assign_for_debug(self):
+    #     self.__un
+
+
 if __name__ == "__main__":
     master = Master()
     

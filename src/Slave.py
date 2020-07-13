@@ -1,3 +1,6 @@
+SLAVE_PORT = 23334
+
+
 class Slave(object):
     def __init__(self):
         pass
