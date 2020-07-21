@@ -16,13 +16,15 @@ def send(target, msg):
     s.close()
     return retMsg
 
-def recv(connection, dealers):
+def recv(connection, dealers, logger):
+    logger.info("listening on port %s"%connection[1])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(connection)
     s.listen()
     while True:
         raw_conn = s.accept()
+        logger.info("received from %s"%raw_conn[0])
         conn = raw_conn[0]
         msgRaw = conn.recv(0x400).decode()
         if not msgRaw:

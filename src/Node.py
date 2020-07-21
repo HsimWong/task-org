@@ -6,6 +6,7 @@ import utils
 import socket
 import Master
 import Slave
+import hashlib 
 from getmac import get_mac_address as gma 
 from time import sleep
 
@@ -14,6 +15,17 @@ NODE_SERV_PORT = 23336
 DNS_SERVER_IP = gma() # needs 2b changes
 DNS_SERVER_PORT = 23333
 DOMAIN_SUFFIX = '.csu.ac.cn'
+
+
+'''
+docker_task = {
+    'target': ip (None),
+    'cpu': float (none),
+    'image' = str (not null),
+    'command': str,
+    'idHash'
+}
+'''
 
 class Node(object):
     '''
@@ -37,8 +49,9 @@ class Node(object):
         self.__run()
         self.__role = None
         self.__nodename = None 
+        self.__register()
         self.__masterserv = Master.Master()
-        self.__slaveserv = Slave.Slave()
+        self.__slaveserv = Slave.Slave(self.__nodename)
         
     def __run(self):
         self.__slaveserv.enable()

@@ -6,6 +6,6 @@ def makeRequest(mirror, specs):
         'type': 'userrq',
         'params': {
             'mirror': mirror,
-            'specs': specs            
+            'specs': specs
         }
     })))

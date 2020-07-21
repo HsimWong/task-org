@@ -19,7 +19,11 @@ DOMAIN_SUFFIX = '.csu.ac.cn'
 HOST_CONF_FILE = '/etc/dnsmasq.d/hosts.conf'
 DNS_RQ_PORT = 23333
 
+logging.basicConfig(datefmt='%d-%b-%y %H:%M:%S',
+    format='[%(asctime)s] %(levelname)s DNSServer: %(message)s',
+    level=logging.DEBUG)
 
+logger = logging.getLogger('DNSServer')
 
 class DNSServer(object):
     def __init__(self):
@@ -27,6 +31,7 @@ class DNSServer(object):
         self.__members = {}#'master'+DOMAIN_SUFFIX: None}
         self.__offlineMembers = {} # {'mac': member}
         self.__master = None
+        self.__nextMaster = None  
         self.__provision()
         dealers = {
             'register': self.__registerNode,
@@ -34,16 +39,18 @@ class DNSServer(object):
             'checkMaster': self.__checkMaster,
             'syncMembers': self.__syncMembers
         }
-        utils.recv(("127.0.0.1", DNS_RQ_PORT), dealers)
+        utils.recv(("127.0.0.1", DNS_RQ_PORT), dealers, logger)
 
         # DNS Service running in the background, started
         # with `systemctl start dnsmasq`
         
 
     def __provision(self):
+        logger.info("start provisioning")
         if not os.geteuid() == 0:
-            sys.exit("This script must be"\
+            logger.error("This script must be"\
                 + "executed under super user")
+            sys.exit(1)
         os.system('fuser -k 53/tcp')
         os.system('fuser -k 23333/tcp')
         os.system('fuser -k 23333/udp')
@@ -98,6 +105,8 @@ class DNSServer(object):
         # telling other nodes other options when 
         # this server is down
         pass
+
+    
 
     def __updateMasterDomain(self, params):
         # mark master node as offline
