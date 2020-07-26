@@ -39,7 +39,7 @@ class DNSServer(object):
             'checkMaster': self.__checkMaster,
             'syncMembers': self.__syncMembers
         }
-        utils.recv(("127.0.0.1", DNS_RQ_PORT), dealers, logger)
+        utils.recv(("0.0.0.0", DNS_RQ_PORT), dealers, logger)
 
         # DNS Service running in the background, started
         # with `systemctl start dnsmasq`
