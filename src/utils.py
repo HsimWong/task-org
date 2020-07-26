@@ -12,7 +12,7 @@ def send(target, msg):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect(target)
     s.sendall(msg.encode())
-    retMsg = s.recv(1024).decode()
+    retMsg = s.recv(2048).decode()
     s.close()
     return retMsg
 
@@ -26,7 +26,7 @@ def recv(connection, dealers, logger):
         raw_conn = s.accept()
         logger.info("received from %s"%raw_conn[0])
         conn = raw_conn[0]
-        msgRaw = conn.recv(0x400).decode()
+        msgRaw = conn.recv(0x800).decode()
         if not msgRaw:
             continue
         else:

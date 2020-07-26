@@ -86,6 +86,8 @@ class Master(object):
             target=self.__fetchMembersFromDNS
         )
         self.__tDnsMemberUpdate.start()
+        self.__tsync = Thread(target=self.__sync)
+        self.__tsync.start()
         
 
     # Need re-implementation
@@ -142,7 +144,11 @@ class Master(object):
                 'success': False
             })
         self.__members.update(params['members'])
-        self.__tasks = params['tasks']
+        # self.__tasks = params['tasks']
+        self.__assignedTasks = params['assigned']
+        self.__unassignedTasks = params['unassigned']
+        self.__members = params['members']
+        self.__logger.debug("Received #members:%s"%str(len(self.__members)))
         self.__logger.info("syncing finished.")
         return json.dumps({
             'success': True
@@ -166,7 +172,7 @@ class Master(object):
                 )
                 self.__logger.info("member update finished")
                 self.__logger.info("current #members: %s"%str(len(self.__members)))
-                self.__logger.debug(str(self.__members))
+                # self.__logger.debug(str(self.__members))
             else:
                 self.__logger.warning("Tried to fetch "
                     + "members from DNS but failed")
@@ -179,31 +185,33 @@ class Master(object):
     def __sync(self):
         while True:
             nextMasterTarget = (self.__selectNextMaster(), MASTER_PORT)
-            self.__logger.info("Trying to sync info to %s"%nextMasterTarget[0])
-            nxtMstReadiness = json.loads(
-                utils.send(nextMasterTarget, json.dumps(
-                    {
-                        'type':'syncrq',
-                        'params': None
-                    }
-                ))
-            )
-            self.__logger.info("Respond from next slave:%s"%str(nxtMstReadiness))
-            
-            if not nxtMstReadiness['prepared']:
-                raise Exception("Target is not yet ready")
+            if self.__status:
+                self.__logger.info("Trying to sync info to %s"%nextMasterTarget[0])
+                # self.__logger.info("status:%s"%str(self.__status))
+                nxtMstReadiness = json.loads(
+                    utils.send(nextMasterTarget, json.dumps(
+                        {
+                            'type':'syncrq',
+                            'params': None
+                        }
+                    ))
+                )
+                self.__logger.info("Respond from next slave:%s"%str(nxtMstReadiness))
+                
+                if not nxtMstReadiness['prepared']:
+                    raise Exception("Target is not yet ready")
 
-        
-            self.__mastServSema.acquire()
-            utils.send(nextMasterTarget, json.dumps({
-                'type':'syncinfo',
-                'params': {
-                    'assigned': self.__assignedTasks,
-                    'unassigned': self.__unassignedTasks,
-                    'members': self.__members
-                }
-            }))
-            self.__mastServSema.release()
+            
+                self.__mastServSema.acquire()
+                utils.send(nextMasterTarget, json.dumps({
+                    'type':'syncinfo',
+                    'params': {
+                        'assigned': self.__assignedTasks,
+                        'unassigned': self.__unassignedTasks,
+                        'members': self.__members
+                    }
+                }))
+                self.__mastServSema.release()
             time.sleep(5)
 
     # Need 2b updated
