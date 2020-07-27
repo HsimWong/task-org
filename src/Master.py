@@ -6,6 +6,7 @@ import utils
 import json
 import time
 import queue
+import requests
 import logging
 
 SLAVE_PORT = 23334
@@ -29,7 +30,7 @@ docker_task = {
     'cpu': float (none),
     'image' = str (not null),
     'command': str,
-    'idHash':string (not null)
+    'instanceHash':string (not null)
 }
 '''
 class Master(object):
@@ -88,6 +89,8 @@ class Master(object):
         self.__tDnsMemberUpdate.start()
         self.__tsync = Thread(target=self.__sync)
         self.__tsync.start()
+        self.__tAssign = Thread(target=self.__assignTasks)
+        self.__tAssign.start()
         
 
     # Need re-implementation
@@ -215,24 +218,21 @@ class Master(object):
             time.sleep(5)
 
     # Need 2b updated
-    # def __userRequest(self, params):
-    #     if params['idHash'] in self.__assignedTasks.keys():
-    #         connection = (params['ip'], SLAVE_PORT)
-    #         return utils.send(connection, json.dumps({
-    #             'type': 'taskrun',
-    #             'params': self.__assignTasks[params['idHash']]
-    #         }))
-    #     elif params['idHash'] in self.__unassignedTasks.keys():
-    #         return json.dumps({
-    #             'code': False,
-    #             'msg': 'Not Deployed'
-    #         })
-    #     else:
-    #         self.__unassignedTasks.update({params['idHash']: params})
-    #         return {
-    #             'code': True,
-    #             'msg': 'Added To The Queue'
-    #         }
+    def __userRequest(self, params):
+        if params['instanceHash'] in self.__assignedTasks.keys():
+            connection = (params['ip'], SLAVE_PORT)
+            return self.__manipulate(self.__assignedTasks[params['instanceHash']])
+        elif params['instanceHash'] in self.__unassignedTasks.keys():
+            return json.dumps({
+                'code': False,
+                'msg': 'Not Deployed'
+            })
+        else:
+            self.__unassignedTasks.update({params['instanceHash']: params})
+            return {
+                'code': True,
+                'msg': 'Added To The Queue'
+            }
               
             
     # for hostname in self.__members.keys():
@@ -254,23 +254,45 @@ class Master(object):
     # def __getSlave(self):
     #     return self.__members['node1'+DOMAIN_SUFFIX]
 
+
     # Concurrent threads
-    # def __assignTasks(self):
-    #     while True:
-    #         self.__mastServSema.acquire()
-    #         task = self.__unassignedTasks.get(block=True)
-    #         host = self.__getSlave(task)
-    #         task['target'] = host
-    #         if host == None:
-    #             self.__unassignedTasks.put(task)
-    #             continue
-    #         targetConn = (host, SLAVE_PORT)
-    #         utils.send(targetConn, json.dumps({
-    #             'type': 'assignment',
-    #             'params':task
-    #         }))
-    #         self.__assignTasks.put(task)
-    #         self.__mastServSema.release()
+    def __assignTasks(self):
+        while True:
+            self.__mastServSema.acquire()
+            task = self.__unassignedTasks.get(block=True)
+            host = self.__getSlave(task)
+            task['target'] = host
+            if host == None:
+                self.__unassignedTasks.put(task)
+                continue
+            # targetConn = (host, SLAVE_PORT)
+            # utils.send(targetConn, json.dumps({
+            #     'type': 'assignment',
+            #     'params':task
+            # }))
+            # self.__deploy(task)
+            self.__deploy(task)
+            
+            self.__assignedTasks.put(task)
+            self.__mastServSema.release()
+       
+    def __deploy(self, task):
+        pass    
+    
+    def __query(self, task):
+        pass 
+    
+    def __manipulate(self, task):
+        pass
+    def __execute(self, target, api, method):
+        return requests.request(method=method, url=(target+api))
+        
+        
+            
+    def __getSlave(self, task):
+        return 'hongkong.chn.ryan1202.wang'
+    
+    
 
     # Concurrent Thread 0
 
