@@ -14,7 +14,7 @@ def send(target, msg):
     s.sendall(msg.encode())
     retMsg = s.recv(2048).decode()
     s.close()
-    return retMsg
+    return json.loads(retMsg)
 
 def recv(connection, dealers, logger):
     logger.info("listening on port %s"%connection[1])
@@ -32,7 +32,7 @@ def recv(connection, dealers, logger):
         else:
             msgParsed = json.loads(msgRaw)
             returnMsg = dealers[msgParsed['type']](msgParsed['params'])
-            conn.sendall(str(returnMsg).encode())
+            conn.sendall((json.dumps(returnMsg)).encode())
     s.close()
 
 # def recv

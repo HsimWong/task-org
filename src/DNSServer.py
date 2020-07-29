@@ -51,6 +51,7 @@ class DNSServer(object):
             logger.error("This script must be"\
                 + "executed under super user")
             sys.exit(1)
+        os.system('fuser -k 53/udp')
         os.system('fuser -k 53/tcp')
         os.system('fuser -k 23333/tcp')
         os.system('fuser -k 23333/udp')
@@ -94,7 +95,8 @@ class DNSServer(object):
         os.system('systemctl restart dnsmasq')
         return {
             'result': True,
-            'nodename': member['domainName']
+            'nodename': member['domainName'],
+            'role': role
         }
 
     def __syncMembers(self, params):

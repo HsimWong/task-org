@@ -28,7 +28,6 @@ logging.basicConfig(datefmt='%d-%b-%y %H:%M:%S',
 docker_task = {
     'target': ip (None),
     'cpu': float (none),
-    'image' = str (not null),
     'command': str,
     'instanceHash':string (not null)
 }
@@ -56,7 +55,6 @@ class Master(object):
     '''
 
     def __init__(self):
-        print("FUCK")
         self.__status = False
         self.__online = False
         self.__members = {}
@@ -70,13 +68,16 @@ class Master(object):
         self.__dealers = {
             'syncrq': self.__syncRequest,
             'syncinfo': self.__syncInfo,
-            'enable': self.__enable
+            'enable': self.__enable,
+            'disable': self.__disable,
             # 'monitoringinfo': self.__monitor,
-            # 'userrq': self.__userRequest,
+            'userrq': self.__userRequest,
             # 'query': self.__userQuery
         }
         self.__logger.info("Provisioning finished, start running")   
-
+        self.__run()
+        
+    def __run(self):
         self.__tRecv = Thread(target=utils.recv,\
             args=(('0.0.0.0', MASTER_PORT),\
             self.__dealers, logging))
