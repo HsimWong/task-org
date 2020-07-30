@@ -5,6 +5,7 @@ import socket
 import utils
 import json
 import time
+import os
 import queue
 import requests
 import logging
@@ -82,7 +83,6 @@ class Master(object):
     def __slaveMonitor(self, params):
         pass
 
-        
     def __run(self):
         self.__tRecv = Thread(target=utils.recv,\
             args=(('0.0.0.0', MASTER_PORT),\
@@ -98,23 +98,7 @@ class Master(object):
         self.__tsync.start()
         # self.__tAssign = Thread(target=self.__assignTasks,name='masterTaskAssign')
         # self.__tAssign.start()
-        
-
-    # Need re-implementation
-    def __userQuery(self):
-        return json.dumps({
-            'members': self.__members,
-            'tasks':{
-                'assigned': self.__assignedInstances,
-                'unassigned': self.__unassignedInstances
-            }
-        })
-
-    # Need re-implementation on
-    # slave-related movements
-    # def __run(self):
-    
-        
+            
     def __enable(self, params):
         if not self.__status:
             self.__status = True
@@ -131,10 +115,6 @@ class Master(object):
             self.__mastServSema.acquire() 
             self.__logger.info("Master service disabled")
         
-
-
-    # Dealer functions called by self.__dealers
-    # Belongs to thread utils.recv
     def __syncRequest(self, params): # activated when self is working
         self.__logger.info("received a syncing request")
         self.__ifNextMaster = True 
@@ -239,94 +219,9 @@ class Master(object):
                 self.__mastServSema.release()
             time.sleep(5)
 
-    # Need 2b updated
     def __userRequest(self, params):
-        if params['instanceHash'] in self.__assignedInstances.keys():
-            connection = (params['ip'], SLAVE_PORT)
-            return self.__manipulate(self.__assignedInstances[params['instanceHash']])
-        elif params['instanceHash'] in self.__unassignedInstances.keys():
-            return json.dumps({
-                'code': False,
-                'msg': 'Not Deployed'
-            })
-        else:
-            self.__unassignedInstances.update({params['instanceHash']: params})
-            return {
-                'code': True,
-                'msg': 'Added To The Queue'
-            }
-              
-            
-    # for hostname in self.__members.keys():
-    #     ip = self.__members['ip']
-    #     if hostname == 'master'+DOMAIN_SUFFIX \
-    #         or ip == DNS_HOST:
-    #         continue 
-    #     else:
-    #         return hostname
-    
-    # Deprecated
-    # def __monitor(self): # Activated when self is working 
-    #     if not self.__status:
-    #         return json.dumps({
-    #             'success': False
-    #         })
-
-    # Subordinate function called by assignTasks
-    # def __getSlave(self):
-    #     return self.__members['node1'+DOMAIN_SUFFIX]
-
-
-    # Concurrent threads
-    def __assignTasks(self):
-        while True:
-            self.__mastServSema.acquire()
-            task = self.__unassignedInstances.get(block=True)
-            host = self.__getSlave(task)
-            task['target'] = host
-            if host == None:
-                self.__unassignedInstances.put(task)
-                continue
-            # targetConn = (host, SLAVE_PORT)
-            # utils.send(targetConn, json.dumps({
-            #     'type': 'assignment',
-            #     'params':task
-            # }))
-            # self.__deploy(task)
-            self.__deploy(task)
-            
-            self.__assignedInstances.put(task)
-            self.__mastServSema.release()
-       
-    def __deploy(self, task):
-        pass    
-    
-    def __query(self, task):
-        pass 
-    
-    def __manipulate(self, task):
-        pass
-    def __execute(self, target, api, method):
-        return requests.request(method=method, url=(target+api))
         
-        
-            
-    def __getSlave(self, task):
-        return ''
-    
-    
-
-    # Concurrent Thread 0
-
-
-    # Concurrent Thread 1
-
-        
-    # Subordinate function called by __sync
-
-
-
-    
+        return os.popen(params['curlCommand']).read()
 
 if __name__ == "__main__":
     master = Master()
