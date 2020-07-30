@@ -18,33 +18,22 @@ logger = logging.getLogger()
 class Slave(object):
     def __init__(self, nodename):
         self.__nodename = nodename
-        self.__report2Master()
-        
-        # self.__client = docker.from_env()
-        
-        
+        self.__tReport = threading.Thread(
+            target=self.__report2Master, name='masterReport')
+        self.__tReport.start()
 
-
-    # def __monitor(self):
-    #     for container in self.__client.
-
-    # def __taskRun(self, params):
-    #     # param_dealers = {
-    #     #     'run': self.__client.containers.run,
-
-    #     # }
-    #     self.__client.containers.run(image=params['image'],\
-    #         command=params['command'], detach=params['detach'],)
-    
     def __report2Master(self):
-        connection = ('master'+DOMAIN_SUFFIX, MASTER_PORT)
         while True:
-            utils.send(connection, json.dumps({
+            hardwareInfo = {
                 'type': 'monitoringinfo',
                 'params': {
                     'from': self.__nodename,
-                    'cpu': self.__getCPUStatus(),
-                    'RAM': psutil.virtual_memory(),
+                    'cpu': {
+                        'usage_percentage': psutil.cpu_percent(),
+                        'cores': psutil.cpu_count(),
+                        'cpu_freq': psutil.cpu_freq().current
+                    },
+                    'ram': psutil.virtual_memory().available,
                     'sensors': {
                         'fans': psutil.sensors_fans(),
                         'battery': psutil.sensors_battery(),
@@ -52,18 +41,20 @@ class Slave(object):
                     }
                     # 'dockers':self.__tasks
                 }
-            }))
-            time.sleep(5)
+            }
+            utils.send(('master'+DOMAIN_SUFFIX, MASTER_PORT), 
+                        json.dumps(hardwareInfo))
+            time.sleep(10)
+
     
 
     def __getFPGAStatus(self):
         return None
 
     def __getCPUStatus(self):
-        return {
-            'usage_percentage': psutil.cpu_percent(),
-            'cores': psutil.cpu_count,
-            'cpu_freq': psutil.cpu_freq()
-        }
+        return 
+
+if __name__ == "__main__":
+    slave = Slave('hello')
 
     

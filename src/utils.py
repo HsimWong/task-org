@@ -1,6 +1,7 @@
 import socket 
 import json
-GATEWAY = '10.255.255.255'
+import os
+GATEWAY = '192.168.255.255'
 def getIP():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect((GATEWAY, 1))
@@ -24,15 +25,18 @@ def recv(connection, dealers, logger):
     s.listen()
     while True:
         raw_conn = s.accept()
-        logger.info("received from %s"%raw_conn[0])
         conn = raw_conn[0]
         msgRaw = conn.recv(0x800).decode()
         if not msgRaw:
             continue
         else:
             msgParsed = json.loads(msgRaw)
+            logger.info("received from %s: %s"%(raw_conn[1], msgParsed['type']))
             returnMsg = dealers[msgParsed['type']](msgParsed['params'])
             conn.sendall((json.dumps(returnMsg)).encode())
     s.close()
+
+def ifReachable(host):
+    return (os.system("ping -w 4 -q -c 1 %s>/dev/null"%host) == 0)
 
 # def recv

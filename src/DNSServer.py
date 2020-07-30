@@ -6,6 +6,7 @@ import utils
 import threading 
 import logging
 import utils
+import time
 from getmac import get_mac_address as gma 
 
 
@@ -35,15 +36,39 @@ class DNSServer(object):
         self.__provision()
         dealers = {
             'register': self.__registerNode,
+            'logNextMaster': self.__logNextMaster,
             'updateMaster': self.__updateMasterDomain,
             'checkMaster': self.__checkMaster,
             'syncMembers': self.__syncMembers
         }
-        utils.recv(("0.0.0.0", DNS_RQ_PORT), dealers, logger)
+        tRecv = threading.Thread(target=utils.recv,\
+            args=(("0.0.0.0", DNS_RQ_PORT), dealers, logger))
+        tRecv.start()
+        tMasMon = threading.Thread(target=self.__masterUpMonitor, 
+                                   name='MasterMonitor')
+        tMasMon.start()
 
+    def __logNextMaster(self, params):
+        self.__nextMaster = params['nextMaster']
+        logger.info("Get master backup node: %s"%params['nextMaster'])
+        
         # DNS Service running in the background, started
         # with `systemctl start dnsmasq`
-        
+
+    def __masterUpMonitor(self):
+        while True:
+            time.sleep(8)
+            if utils.ifReachable('master'+DOMAIN_SUFFIX):
+                continue
+            else:
+                logger.info("Master failed detected, updating master")
+                utils.send(("localhost", DNS_RQ_PORT),
+                json.dumps({
+                    'type': 'updateMaster',
+                    'params': None
+                }))
+            
+            
 
     def __provision(self):
         logger.info("start provisioning")
@@ -52,12 +77,12 @@ class DNSServer(object):
                 + "executed under super user")
             sys.exit(1)
         os.system('fuser -k 53/udp')
+        os.system("echo '' > %s"%HOST_CONF_FILE)
         os.system('fuser -k 53/tcp')
         os.system('fuser -k 23333/tcp')
         os.system('fuser -k 23333/udp')
         os.system('systemctl start dnsmasq')
-        os.system('rm %s && touch %s'%\
-            (HOST_CONF_FILE, HOST_CONF_FILE))
+
 
     def __registerNode(self, params):
         '''Note: term `domainName` here refers to the 
@@ -93,11 +118,13 @@ class DNSServer(object):
             else:
                 raise Exception("Role tag error")
         os.system('systemctl restart dnsmasq')
-        return {
+        regisResult = {
             'result': True,
             'nodename': member['domainName'],
             'role': role
         }
+        logger.info(str(regisResult))
+        return regisResult
 
     def __syncMembers(self, params):
         return json.dumps(self.__members)
@@ -111,6 +138,10 @@ class DNSServer(object):
     
 
     def __updateMasterDomain(self, params):
+        if not 'master'+DOMAIN_SUFFIX in self.__members.keys():
+            logger.info("Master node is not yet registered"\
+                +", give up updating master ip")
+            return False
         # mark master node as offline
         self.__members['master'+(DOMAIN_SUFFIX)].update({
             'status':'offline',

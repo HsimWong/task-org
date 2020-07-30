@@ -5,6 +5,8 @@ import utils
 import socket
 import hashlib 
 import logging
+import Master
+import Slave
 from getmac import get_mac_address as gma 
 from time import sleep
 
@@ -12,7 +14,7 @@ from time import sleep
 NODE_SERV_PORT = 23336
 MASTER_PORT = 23335
 # DNS_SERVER_IP = gma() # needs 2b changes
-DNS_SERVER = '47.103.45.126'
+DNS_SERVER = '192.168.123.225'
 DNS_SERVER_PORT = 23333
 DOMAIN_SUFFIX = '.csu.ac.cn'
 
@@ -53,22 +55,33 @@ class Node(object):
         logger.info("Node start initializing")
         self.__ip = utils.getIP()
         self.__mac = gma()
-        self.__run()
         self.__role = None
         self.__nodename = None 
-        logger.info("Node Initializing finished")
-        self.__register()
         self.__master = None
-        # self.__run()
+        self.__register()
+        self.__run()
         # self.__masterserv = Master.Master()
         # self.__slaveserv = Slave.Slave(self.__nodename)
         
     def __run(self):
+        logger.info("Constructing Master service and slave service")
+        
+        tMaster = threading.Thread(target=self.__masterStarter, name='master')
+        # tSlave = threading.Thread(target=Slave.Slave,\
+        #     args=(self.__nodename), name='slave')
+        tSlave = threading.Thread(target=self.__slaveStarter, name='slave')
+        tMaster.start()
+        tSlave.start()
         t1 = threading.Thread(target=self.__masterServMonitor,\
             name='masterServMonitor')
         t1.start()
         
-        
+    def __masterStarter(self):
+        self.__masterserv = Master.Master()
+
+    def __slaveStarter(self):
+        self.__slaveserv = Slave.Slave(self.__nodename)
+
     def __masterServMonitor(self):
         while True:
             currentMaster = None
@@ -99,7 +112,7 @@ class Node(object):
             'params': {
                 'mac': self.__mac,
                 'IPAddress': self.__ip,
-                'role': 'slave' if masterInfo['exist'] 
+                'role': 'slave' if (masterInfo['exist'] or DNS_SERVER == self.__ip) 
                     else 'master'
             }
         }

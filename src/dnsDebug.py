@@ -87,3 +87,17 @@ def syncMembers():
         'params': None
     })
     print(json.loads(utils.send(('localhost', 23333), info)))
+
+def getSlaveReport():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    info = {
+        'type': 'hardware',
+        'params': 'None'
+    }
+    send_str = json.dumps(info)
+    s.connect(('localhost', 23334))
+    s.sendall(send_str.encode())
+    data = s.recv(1024)
+    print(data.decode())
+
+    s.close()
