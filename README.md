@@ -1,11 +1,29 @@
 # Task-Org
 
-A submodule of SATFAD, implemented for orchestrating docker-based tasks
+A submodule of SATFAD, implemented for orchestrating docker-based tasks.
+
 
 ## Overview
-![Services running on nodes and corresponding dataflow](pics/service.jpg)
+
+## Working Mode
+### 1. Provisioning
+
+### 2. Steadily Working Mode
+
+
+## Few Thoughts on the Design
+### 1. Why using DNS mechanism for identifying roles and nodes?
+One of the requirements to the framework is a mechanism for redundancy, where the running states of each docker containers should be able to be recovered if the host for running it is down. A heuristic intuition for the solution considers backing up information of container instances to the master of the cluster, so that container instances running on the dead machine can be revoked on other alive nodes by referencing the info backed-up in the master node. However, it is undoubtful that the possibility of master's dead should be taken into consideration, and although a mechanism for recovering master's info to a new node is made, other nodes are still not yet told to whom it should contact when it comes to a need for communicating with the "master". We are therefore curious about an implementation that allows a pronoun-fashioned node accessing, which is exactly what a dynamic DNS (dDNS) for. Under such a mechanism using dDNS, respective IP address targeting 'master.`DOMAIN_SUFFIX`' will updated whenever the master node is detected dead, and procedures for enabling back-up master node service are subsequently invoked. 
+
+However, such a method also comes with shortages when one or more nodes simultaneouly belongs to more than one clusters. Therefore, a special DNS client specifically for network accessing of services in the framework is needed in order to differentiate accessing requests from different clusters, which will be completed in the near future. 
+
+### 2. Why developed services-fashioned?
+Update later...
 
 ## Responsibilities of Each Module
+
+![Services running on nodes and corresponding dataflow](pics/service.jpg)
+
 ### Node Service
 1. Always check if "I am the master"
 2. Enable/Disable the master service of current node based on the result
