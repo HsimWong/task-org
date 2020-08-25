@@ -1,27 +1,37 @@
 # Task-Org
 
-A submodule of SATFAD, implemented for orchestrating docker-based tasks.
-
-
 ## Overview
+
+This repo consists the source code of the operation layer of two-layer computation framework SATFAD, which is in charge of orchestrating container-based tasks. The framework runs on architecturally homegeneous nodes and is expected to be able to handle tasks assigned by the upper layer. An overview of the implementation is shown in the figure below.
+![Services running on nodes and corresponding dataflow](pics/service.jpg)
 
 ## Working Phases
 ### 1. Provisioning Phase
 The provisioning procedure aims to prepare the software environment for the smooth running of the system, which includes: 1. dependencies installation(dnsmasq, docker, getmac, firewalld, etc.); 2. service initializations (requiring sequential movements).
 
 We would like to define the system into two layers: one for managing layer, which deals with target observation and its respective task generating, and the other one is operation layer, which is in charge of allocation of computational resources. The managing layer a logical layer that is not necessarily to be running on dedicated machines, whose `orchestrator` relays parameters for networking configurations to involved nodes to form a cluster. Nodes networked in the cluster are regarded as intraterritorial nodes, while nodes not networked are considered as extraterritorial nodes.
-![Services running on nodes and corresponding dataflow](pics/networking.png)
+
+<p align="center">
+  <img align="center" src="https://raw.githubusercontent.com/HsimWong/task-org/master/pics/networking.png" width="80%" />
+</p>
+
 Whenever a cluster is constructed, an intraterritorial node will be firstly provisioned as a DNS request handler to ensure the functionality of name-based inter-machine communications. Other nodes will be afterwards informed to provision themselves as regular nodes. 
-![Services running on nodes and corresponding dataflow](pics/sequence.png)
+
+
+<p align="center">
+  <img align="center" src="https://raw.githubusercontent.com/HsimWong/task-org/master/pics/sequence.png" width="50%" />
+</p>
+
 Information for node provisioning is quite simple. For the node in charge of handling DNS requests, a field indicating the type of provisioning will be sent to the chosen node. For other node, besides provisioning type, the IP address of provisioned DNS server is also included so that name-based accessing is ensured.
 
 For nodes that are expected to be provisioned as DNS server, the only variations that characterize itself from others is the awareness of not being able to register itself to be the master role during the initialization period, and the exemption of the port 53. For regular nodes, the initialization process can be shown in the following figure.
-![Services running on nodes and corresponding dataflow](pics/reguNodeProv.png)
+
+<p align="center">
+  <img align="center" src="https://raw.githubusercontent.com/HsimWong/task-org/master/pics/reguNodeProv.png" width="80%" />
+</p>
 
 ### 2. Steady Working Phase
 The steady working phase regards to the period after provisioning until the dead of the system, and the data flow during this phase is shown below.
-
-![Services running on nodes and corresponding dataflow](pics/service.jpg)
 
 ***Node Service***
 1. Always check if "I am the master"
