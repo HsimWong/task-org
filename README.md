@@ -5,11 +5,45 @@ A submodule of SATFAD, implemented for orchestrating docker-based tasks.
 
 ## Overview
 
-## Working Mode
-### 1. Provisioning
+## Working Phases
+### 1. Provisioning Phase
+The provisioning procedure aims to prepare the software environment for the smooth running of the system, which includes: 1. dependencies installation(dnsmasq, docker, getmac, firewalld, etc.); 2. service initializations (requiring sequential movements).
 
-### 2. Steadily Working Mode
+We would like to define the system into two layers: one for managing layer, which deals with target observation and its respective task generating, and the other one is operation layer, which is in charge of allocation of computational resources. The managing layer a logical layer that is not necessarily to be running on dedicated machines, whose `orchestrator` relays parameters for networking configurations to involved nodes to form a cluster. Nodes networked in the cluster are regarded as intraterritorial nodes, while nodes not networked are considered as extraterritorial nodes.
+![Services running on nodes and corresponding dataflow](pics/networking.png)
+Whenever a cluster is constructed, an intraterritorial node will be firstly provisioned as a DNS request handler to ensure the functionality of name-based inter-machine communications. Other nodes will be afterwards informed to provision themselves as regular nodes. 
+![Services running on nodes and corresponding dataflow](pics/sequence.png)
+Information for node provisioning is quite simple. For the node in charge of handling DNS requests, a field indicating the type of provisioning will be sent to the chosen node. For other node, besides provisioning type, the IP address of provisioned DNS server is also included so that name-based accessing is ensured.
 
+For nodes that are expected to be provisioned as DNS server, the only variations that characterize itself from others is the awareness of not being able to register itself to be the master role during the initialization period, and the exemption of the port 53. For regular nodes, the initialization process can be shown in the following figure.
+![Services running on nodes and corresponding dataflow](pics/reguNodeProv.png)
+
+### 2. Steady Working Phase
+The steady working phase regards to the period after provisioning until the dead of the system, and the data flow during this phase is shown below.
+
+![Services running on nodes and corresponding dataflow](pics/service.jpg)
+
+***Node Service***
+1. Always check if "I am the master"
+2. Enable/Disable the master service of current node based on the result
+given by `1`.
+3. Node registering to the cluster
+
+***Master Service***
+1. Accepts tasks assigned to the cluster via the subordinate service `Webview Service`
+2. Accepts backup info from current master node (when not activated)
+3. Trigger the backup process (when activated)
+4. Always syncing the status of members in the cluster from DNS service
+
+***Slave Service***
+1. Accepts tasks assigned by `master service`
+2. Returns the execution status of tasks to master node
+3. Monitors status of sensors, FPGA cores, GPU cores and CPU
+
+***DNS service***
+1. Provides storage for infos of members in the cluster
+2. Handles Node registering
+3. Responds to DNS requests
 
 ## Few Thoughts on the Design
 ### 1. Why using DNS mechanism for identifying roles and nodes?
@@ -22,29 +56,6 @@ The system is expected to secure the data and functionalities when accidents suc
 
 ## Responsibilities of Each Module
 
-![Services running on nodes and corresponding dataflow](pics/service.jpg)
-
-### Node Service
-1. Always check if "I am the master"
-2. Enable/Disable the master service of current node based on the result
-given by `1`.
-3. Node registering to the cluster
-
-### Master Service
-1. Accepts tasks assigned to the cluster via the subordinate service `Webview Service`
-2. Accepts backup info from current master node (when not activated)
-3. Trigger the backup process (when activated)
-4. Always syncing the status of members in the cluster from DNS service
-
-### Slave Service
-1. Accepts tasks assigned by `master service`
-2. Returns the execution status of tasks to master node
-3. Monitors status of sensors, FPGA cores, GPU cores and CPU
-
-### DNS service
-1. Provides storage for infos of members in the cluster
-2. Handles Node registering
-3. Responds to DNS requests
 
 ## Assumptions and Problems
 ### Assumptions
