@@ -18,7 +18,7 @@ One of the requirements to the framework is a mechanism for redundancy, where th
 However, such a method also comes with shortages when one or more nodes simultaneouly belongs to more than one clusters. Therefore, a special DNS client specifically for network accessing of services in the framework is needed in order to differentiate accessing requests from different clusters, which will be completed in the near future. 
 
 ### 2. Why developed services-fashioned?
-Update later...
+The system is expected to secure the data and functionalities when accidents such as sudden failure or dropout occur, as was discussed in aforementioned section, and architectural hemogeneity is therefore utilised. Instead of developing independent applications for each roles in the system, implementing each role in a fashion of service and deploy all these services to each node with a role-switching mechanism helps to reduce the possibility of errors during role switching, for it does not have to deal with data mid-way data transmision when role switching occurs. 
 
 ## Responsibilities of Each Module
 
