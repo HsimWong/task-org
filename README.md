@@ -9,7 +9,7 @@ This repo consists the source code of the operation layer of two-layer computati
 ### 1. Provisioning Phase
 The provisioning procedure aims to prepare the software environment for the smooth running of the system, which includes: 1. dependencies installation(dnsmasq, docker, getmac, firewalld, etc.); 2. service initializations (requiring sequential movements).
 
-We would like to define the system into two layers: one for managing layer, which deals with target observation and its respective task generating, and the other one is operation layer, which is in charge of allocation of computational resources. The managing layer a logical layer that is not necessarily to be running on dedicated machines, whose `orchestrator` relays parameters for networking configurations to involved nodes to form a cluster. Nodes networked in the cluster are regarded as intraterritorial nodes, while nodes not networked are considered as extraterritorial nodes.
+We would like to define the system into two layers: one for managing layer, which deals with target observation and generation of its respective tasks, and the other one is the operation layer that takes charge of allocation of computational resources. The managing layer is a logical layer that is not necessarily to be running on dedicated machines, whose `orchestrator` relays parameters for networking configurations to involved nodes to form a cluster. Nodes networked in the cluster are regarded as intraterritorial nodes, while nodes not networked are considered as extraterritorial nodes.
 
 <p align="center">
   <img align="center" src="https://raw.githubusercontent.com/HsimWong/task-org/master/pics/networking.png" width="80%" />
